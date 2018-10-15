@@ -1,0 +1,50 @@
+plugins {
+    id 'java'
+}
+
+group 'isaiahp.net'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile     group: "io.netty", name: "netty-all" , version: "4.1.30.Final"
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+ext {
+    asyncProfPath = '/opt/tools/async-profiler/build'
+    commonJvmArgs = ['-XX:+UnlockDiagnosticVMOptions', '-XX:+DebugNonSafepoints', '-XX:+PreserveFramePointer']
+}
+
+task run(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'Server'
+    jvmArgs = commonJvmArgs
+
+}
+
+task jfr(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'Server'
+    jvmArgs =  commonJvmArgs + ['-XX:+UnlockCommercialFeatures', '-XX:+FlightRecorder',
+                                '-XX:StartFlightRecording=delay=10s,duration=60s,name=server_recording,filename=recording.jfr,settings=profile']
+    
+}
+
+task asyncprof(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'Server'
+    jvmArgs = commonJvmArgs + ["-agentpath:${asyncProfPath}/libasyncProfiler.so=start,svg,file=profile.cpu.svg,event=cpu,duration=60"]
+
+}
+
+task asyncprof_wallclock(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'Server'
+    jvmArgs = commonJvmArgs + ["-agentpath:${asyncProfPath}/libasyncProfiler.so=start,svg,file=profile.wall.svg,event=wall,duration=60"]
+}
