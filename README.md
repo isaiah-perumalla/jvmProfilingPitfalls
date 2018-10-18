@@ -32,7 +32,10 @@ At these points the JVM can signal application thread to yeild themselves so JVM
 The key point here is the JVM cannot force a thread to suspend, it has to wait for the application thread to reach a safepoint before it can be suspended, and once the thread has reached a safepoint it can prevent it from leaving this point until it has finished all is bookeeping work.
 Depending on the number of application threads in the system it there is an overhead to brink all application threads to a safepoint.
 
-when running in interpreted mode the interpreter thread will poll the safepoint after executing each bytecode, but for JIT compiled code this is not the case JIT inserts safepoint polling only at method exits other.
+when running in interpreted mode the interpreter thread will poll the safepoint after executing each bytecode, but for JIT compiled code this is not the case JIT inserts safepoint polling at 
+1) backedge of an **uncounted** loops
+2) when JNI calls exit
+3) method enter/exits
    
 ### How do most profilers get stack traces
 Profilers fall into two categories, sampling profilers and instrumentation profilers.
@@ -48,10 +51,15 @@ For sampling profilers to be effective the following asuumptions **must** be met
 Things to consider when using sampling profilers
 1) selecting a sampling interval to avoid values that correspond to periodic events in the application. For example, if a timer interrupt is handled every N milliseconds, we would want to avoid multiples of N as the sampling interval as the profile data can potentially be biased because more often than not we might be sampling in the interrupt handler.
 2) Sampling bias, all parts of code should have equal likely hood of being sampled if this is not the case the profile data can be completly misleading.
-
+3) Cost of obtaining samples 
 As we shall see many commmon profilers suffer from sampling bias, and hot methods can be completely ommited from samples.
 Most popular profilers on the JVM use 
-[JVM Tool Tnterface ](https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html#whatIs)[GetStackTrace](https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html#GetStackTrace) to obtain stack trace sample. however there is one major drawback with this interface as sample can only be obtained when the application code reaches a **SafePoint** . What this means is the sample can only be of code that can reach a safepoint. In the JVM not all code can reach a safepoint, this skews the distribution of the samples which can make the profiler inaccurate. The other issue is waiting for all application threads to reach a safe point can potentially induce large overheads in the application that is being profiled, for example if there are 10 application threads running, then collecting a stack sample will casue the JVM to come to a same point 10 times.
+[JVM Tool Tnterface ](https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html#whatIs)[GetStackTrace](https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html#GetStackTrace) to obtain stack trace sample. however there are a couple of major drawbacks when using this interface to sample stack-traces
+1) the stack-trace can only be obtained when the application code reaches a **SafePoint** . What this means is the sample can only be of code that can reach a safepoint. In the JVM not all code can reach a safepoint, example in a **counted** loop (ie loop with a bounds know at compile time) a safepoint cannot exist in here, another example is if your application spends a lot of time executing native code via JNI call, this will also not show up in samples, this skews the distribution of the samples which can make the profiler inaccurate. 
+2) The other issue is [GetStackTrace](https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html#GetStackTrace) waits for all application threads to reach a safe point before a sample can be taken, this can potentially induce large overheads in the application that is being profiled, to make things worse this is called for each application thread for example if there are 10 application threads running, then collecting a stack sample will casue all application thread to come to a safepoint 10 times. if an application thread that is preempted by the OS but not at a safepoint, we have to wait until this is scheduled back on to the cpu and **has** reached a safepoint. 
+
+### Evaluation of common profilers
+
 
 
 
