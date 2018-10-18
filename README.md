@@ -1,8 +1,7 @@
 # JVM Profiling gotchas 
 Profilers in are a great tool in a developers toolbox, which is oftern underused or only used when 
 there is big performace issue.
-In my opions as software devs we should regularly profile code as it not only helps us uncover bottlenecks in our software but also
-helps us gain an indepth understand the execution of code which includes third party libraries and OS level code. 
+In my opions as software engineers we should regularly measure data from our applications, it not only helps us uncover bottlenecks in our software but also helps us gain an indepth understand the execution of code which includes third party libraries and OS level code. Profiling regularly also helps uncover bugs early as it could uncover execution of code which maybe should never be executed in a certian context.
 Profiling help us focus our effors on parts of the code which are most critical .
 
 "A good programmer will be wise to look carefully at the critcal coe; but **only after**" that code has been **indetified** " -- D Knuth
@@ -46,6 +45,11 @@ For sampling profilers to be effective the following asuumptions **must** be met
 2) Need a large collection of samples to get resonably accurate results
 3) **All** parts of exectuing code have **equal probability of being sampled** 
 
+Things to consider when using sampling profilers
+1) selecting a sampling interval to avoid values that correspond to periodic events in the application. For example, if a timer interrupt is handled every N milliseconds, we would want to avoid multiples of N as the sampling interval as the profile data can potentially be biased because more often than not we might be sampling in the interrupt handler.
+2) Sampling bias, all parts of code should have equal likely hood of being sampled if this is not the case the profile data can be completly misleading.
+
+As we shall see many commmon profilers suffer from sampling bias, and hot methods can be completely ommited from samples.
 Most popular profilers on the JVM use 
 [JVM Tool Tnterface ](https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html#whatIs)[GetStackTrace](https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html#GetStackTrace) to obtain stack trace sample. however there is one major drawback with this interface as sample can only be obtained when the application code reaches a **SafePoint** . What this means is the sample can only be of code that can reach a safepoint. In the JVM not all code can reach a safepoint, this skews the distribution of the samples which can make the profiler inaccurate. The other issue is waiting for all application threads to reach a safe point can potentially induce large overheads in the application that is being profiled, for example if there are 10 application threads running, then collecting a stack sample will casue the JVM to come to a same point 10 times.
 
