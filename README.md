@@ -8,7 +8,7 @@ Profiling help us focus our effors on parts of the code which are most critical 
 
 "
 
-Without a profiler it is almost impossible to indentify critical code in large software.
+Without a profiler it is almost impossible to identify critical code in large software.
 
 This post is just some of my notes on how profiling tools (sampling profilers in particular ) work on the JVM and limitation of common tools
 
@@ -46,19 +46,20 @@ For sampling profilers to be effective the following asuumptions **must** be met
 
 1) Samples are recorded at frequent intervals
 2) Need a large collection of samples to get resonably accurate results
-3) **All** parts of exectuing code have **equal probability of being sampled** 
+3) **All** parts of executing code have **equal probability of being sampled** 
 
 Things to consider when using sampling profilers
 1) selecting a sampling interval to avoid values that correspond to periodic events in the application. For example, if a timer interrupt is handled every N milliseconds, we would want to avoid multiples of N as the sampling interval as the profile data can potentially be biased because more often than not we might be sampling in the interrupt handler.
 2) Sampling bias, all parts of code should have equal likely hood of being sampled if this is not the case the profile data can be completly misleading.
 3) Cost of obtaining samples 
-As we shall see many commmon profilers suffer from sampling bias, and hot methods can be completely ommited from samples.
+As we shall see many commmon profilers suffer from sampling bias (i.e failing to collect samples randomly) and hot methods can be completely ommited from samples.
 Most popular profilers on the JVM use 
 [JVM Tool Tnterface ](https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html#whatIs)[GetStackTrace](https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html#GetStackTrace) to obtain stack trace sample. however there are a couple of major drawbacks when using this interface to sample stack-traces
 1) the stack-trace can only be obtained when the application code reaches a **SafePoint** . What this means is the sample can only be of code that can reach a safepoint. In the JVM not all code can reach a safepoint, example in a **counted** loop (ie loop with a bounds know at compile time) a safepoint cannot exist in here, another example is if your application spends a lot of time executing native code via JNI call, this will also not show up in samples, this skews the distribution of the samples which can make the profiler inaccurate. 
 2) The other issue is [GetStackTrace](https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html#GetStackTrace) waits for all application threads to reach a safe point before a sample can be taken, this can potentially induce large overheads in the application that is being profiled, to make things worse this is called for each application thread for example if there are 10 application threads running, then collecting a stack sample will casue all application thread to come to a safepoint 10 times. if an application thread that is preempted by the OS but not at a safepoint, we have to wait until this is scheduled back on to the cpu and **has** reached a safepoint. 
 
 ### Evaluation of common profilers
+To evaluate common profilers we use a sample program with **known** performance bottlenecks 
 
 
 
