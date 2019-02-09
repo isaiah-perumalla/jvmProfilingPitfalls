@@ -21,6 +21,10 @@ Byte code interpreter, JIT compiler, Garbage-Collector (GC).
 javac compiler converts source to class files which are JVM bytecodes, the JVM starts off Java programs by running a byte code interpreter to executing bytecodes the interpreter itself is a simple stack-based machine. While bytecodes are executed by the interpreter, the JVM keeps track of **hot spots** in the code by observing most frequently executed parts of code. To acheive maximal performace the code must execute directly on native cpu, to acheive this, parts of of the code identified as **hot spots** is then compiled to machine code by the JIT (just in time compiler). The code now running on the cpu is could be significantly different from  the source code that was written as JIT compiler does sophisticated optimizations, based on statistics and trace information gathered while executing the bytecodes.
 The third main component GC manages the allocation and release of heap based memory, this is a not deterministic process which recycles heap memory that is no longer used by the running application.
 
+### Evaluation of common profilers
+To evaluate common profilers we use a sample program with **known** performance bottlenecks 
+
+
 
 ### Safepoints
 
@@ -45,7 +49,7 @@ This sample is records as the profiler collects more samples we have a **estimat
 For sampling profilers to be effective the following asuumptions **must** be met 
 
 1) Samples are recorded at frequent intervals
-2) Need a large collection of samples to get resonably accurate results
+2) Need a large collection of samples to get resonably accuratIt's also worth noting that threads blocking in calls to native methods appear in the JVM as RUNNABLE, and hence are reported by VisualVM as Running (and as consuming 100% CPU).e results
 3) **All** parts of executing code have **equal probability of being sampled** 
 
 Things to consider when using sampling profilers
@@ -58,10 +62,11 @@ Most popular profilers on the JVM use
 1) the stack-trace can only be obtained when the application code reaches a **SafePoint** . What this means is the sample can only be of code that can reach a safepoint. In the JVM not all code can reach a safepoint, example in a **counted** loop (ie loop with a bounds know at compile time) a safepoint cannot exist in here, another example is if your application spends a lot of time executing native code via JNI call, this will also not show up in samples, this skews the distribution of the samples which can make the profiler inaccurate. 
 2) The other issue is [GetStackTrace](https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html#GetStackTrace) waits for all application threads to reach a safe point before a sample can be taken, this can potentially induce large overheads in the application that is being profiled, to make things worse this is called for each application thread for example if there are 10 application threads running, then collecting a stack sample will casue all application thread to come to a safepoint 10 times. if an application thread that is preempted by the OS but not at a safepoint, we have to wait until this is scheduled back on to the cpu and **has** reached a safepoint. 
 
-### Evaluation of common profilers
-To evaluate common profilers we use a sample program with **known** performance bottlenecks 
 
 
+#### jVisualVM
+potentially misleading JVM RUNNABLE state does not mean thread is actually consuming cpu, it important to be aware of thsi when reading visualVM output.
+**threads blocking in calls to native methods appear in the JVM as RUNNABLE, and hence are reported by VisualVM as Running (and as consuming 100% CPU)**
 
 
  
