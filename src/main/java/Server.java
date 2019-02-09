@@ -32,7 +32,7 @@ public class Server {
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
 
             // Bind and start to accept incoming connections.
-            ChannelFuture f = b.bind(port).sync(); // (7)
+            ChannelFuture f = b.bind(port).sync();
             f.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();
@@ -42,13 +42,13 @@ public class Server {
 
 
 
-
     public static void main(String[] args) {
 
         int port = args.length > 0 ? Integer.parseInt(args[0]) : 9090;
+        Boolean ioBound = Boolean.getBoolean("io");
         Server server = new Server(port);
         try {
-            server.start(() -> new Work());
+            server.start(() -> new FxRateGenerator(!ioBound));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
